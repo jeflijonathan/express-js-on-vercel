@@ -1,0 +1,245 @@
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Role {
+  id   Int    @id @default(autoincrement())
+  name String @unique @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  employee Employee[]
+}
+
+model Employee {
+  id          String   @id @default(uuid())
+  namaLengkap String
+  email       String   @unique
+  roleId      Int
+  role        Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  status      Boolean
+
+  team        Team[]
+  sesiBongkar SesiBongkar[]
+  user        User[]
+  gaji        Gaji[]  
+}
+
+model User {
+  id         String   @id @default(uuid())
+  employeeId String   @unique
+  username   String
+  password   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  employee     Employee             @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  resetTokens  PasswordResetToken[]
+  refreshToken RefreshToken[]
+  activityLogs ActivityLog[]
+}
+
+model RefreshToken {
+  id              String   @id @default(uuid())
+  token           String   @db.Text
+  tokenHash       String   @unique @db.VarChar(64)
+  userId          String
+  expiresAt       DateTime
+  isRevoked       Boolean  @default(false)
+  ipAddress       String?
+  userAgent       String?
+  replacedByToken String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @db.Text
+  tokenHash String   @unique @db.VarChar(64)
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model GroupTeam {
+  id     String  @id @default(uuid())
+  status Boolean
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team        Team[]
+  sesiBongkar SesiBongkar[]
+}
+
+model Team {
+  id          String @id @default(uuid())
+  kdTeam      String
+  idGroupTeam String
+
+  employee  Employee  @relation(fields: [kdTeam], references: [id], onDelete: Cascade)
+  groupTeam GroupTeam @relation(fields: [idGroupTeam], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Angkut {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sesiBongkar  SesiBongkar[]
+  tarifBongkar TarifBongkar[]
+  gajiKaryawan Gaji[]
+}
+
+model Barang {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique
+  status Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sesiBongkar  SesiBongkar[]
+  tarifBongkar TarifBongkar[]
+}
+
+model ContainerSize {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sesiBongkar  SesiBongkar[]
+  tarifBongkar TarifBongkar[]
+  gajiKaryawan Gaji[]
+}
+
+model TradeType {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sesiBongkar  SesiBongkar[]
+  tarifBongkar TarifBongkar[]
+  gajiKaryawan Gaji[]
+}
+
+model StatusBongkar {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sesiBongkar SesiBongkar[]
+}
+
+model SesiBongkar {
+  noContainer     String    @unique
+  idKoorLap       String
+  idGroupTeam     String
+  idBarang        Int?
+  idStatusBongkar Int       @default(2)
+  idContainerSize Int
+  idTradeType     Int
+  idAngkut        Int
+  jasaWrapping    Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  endAT           DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  tradeType     TradeType       @relation(fields: [idTradeType], references: [id], onDelete: Cascade)
+  angkut        Angkut          @relation(fields: [idAngkut], references: [id], onDelete: Cascade)
+  containerSize ContainerSize   @relation(fields: [idContainerSize], references: [id], onDelete: Cascade)
+  barang        Barang?         @relation(fields: [idBarang], references: [id], onDelete: Cascade)
+  statusBongkar StatusBongkar   @relation(fields: [idStatusBongkar], references: [id], onDelete: Cascade)
+  koorlap       Employee        @relation(fields: [idKoorLap], references: [id], onDelete: Cascade)
+  groupTeam     GroupTeam       @relation(fields: [idGroupTeam], references: [id], onDelete: Cascade)
+  detailLaporan DetailLaporan[]
+}
+
+model TarifBongkar {
+  id              Int           @id @default(autoincrement())
+  idBarang        Int
+  idContainerSize Int
+  idTradeType     Int
+  idAngkut        Int
+  amount          Float
+  jasaWrapping    Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  tradeType       TradeType     @relation(fields: [idTradeType], references: [id], onDelete: Cascade)
+  angkut          Angkut        @relation(fields: [idAngkut], references: [id], onDelete: Cascade)
+  containerSize   ContainerSize @relation(fields: [idContainerSize], references: [id], onDelete: Cascade)
+  barang          Barang        @relation(fields: [idBarang], references: [id], onDelete: Cascade)
+}
+
+model Laporan {
+  id            Int             @id @default(autoincrement())
+  tanggalAwal   DateTime
+  tanggalAkhir  DateTime
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  detailLaporan DetailLaporan[]
+}
+
+model DetailLaporan {
+  id            Int         @id @default(autoincrement())
+  idSesiBongkar String
+  gajiKaryawan  Float
+  hargaBongkar  Float
+  biayaWrapping Float       @default(0)
+  idLaporan     Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  laporan       Laporan     @relation(fields: [idLaporan], references: [id], onDelete: Cascade)
+  sesiBongkar   SesiBongkar @relation(fields: [idSesiBongkar], references: [noContainer], onDelete: Cascade)
+}
+
+model Gaji {
+  id              Int           @id @default(autoincrement())
+  angkutId        Int
+  tradeTypeId     Int
+  containerSizeId Int
+  gaji            Float
+  koorlapId       String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  angkut          Angkut        @relation(fields: [angkutId], references: [id], onDelete: Cascade)
+  tradeType       TradeType     @relation(fields: [tradeTypeId], references: [id], onDelete: Cascade)
+  containerSize   ContainerSize @relation(fields: [containerSizeId], references: [id], onDelete: Cascade)
+  koorlap         Employee      @relation(fields: [koorlapId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String
+  action      String   
+  description String?  @db.Text
+  ipAddress   String?
+  userAgent   String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
