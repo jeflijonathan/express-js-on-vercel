@@ -7,25 +7,24 @@ import { prisma } from "src/config/database/client";
 
 const app = express();
 
+const server = new Server(app);
+const router = new Router(app);
+
+router.routerAPI();
+router.routerExcel();
+
+app.use((_, res: Response) => {
+  res.status(404).json({
+    status: "Error",
+    statusCode: 404,
+    message: "404 Not Found Page",
+    data: [],
+  });
+});
+
 async function main() {
   try {
-    await prisma.$connect();
-
-    const router = new Router(app);
-    const server = new Server(app);
-
-    router.routerAPI();
-    router.routerExcel();
-    router.app.use((_, res: Response) => {
-      res.status(404).json({
-        status: "Error",
-        statusCode: 404,
-        message: "404 Not Found Page",
-        data: [],
-      });
-    });
-
-    server.listen();
+    await server.listen();
 
     process.on("SIGINT", async () => {
       await prisma.$disconnect();
