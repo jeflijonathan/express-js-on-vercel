@@ -24,7 +24,7 @@ export default class CommonOptionsController extends BaseController {
     this.getGroupTimOptions();
     this.getTradeTypeOptions();
     this.getContainerSizeOptions();
-    this.getStatusBongkarMuat();
+
   }
 
   getRoleOptions() {
@@ -193,15 +193,5 @@ export default class CommonOptionsController extends BaseController {
     );
   }
 
-  getStatusBongkarMuat() {
-    this.router.get("/status-bongkar", authenticateToken, async (req, res) => {
-      try {
-        const result = await this.CommonOptionService.findStatusBongkar();
 
-        this.handleSuccess(res, result, "Successfully fetched status bongkar");
-      } catch (err: any) {
-        this.handleError(res, err);
-      }
-    });
-  }
 }

@@ -104,21 +104,12 @@ class BongkarMuatController extends BaseController {
   update() {
     this.router.put("/bongkar-muat/:id", authenticateToken, authorizeRoles("MANAJER", "SPV"), async (req: any, res) => {
       try {
-        const userRole = req.user?.role?.name?.toUpperCase();
-
-        if (userRole === "ADMIN") {
-          return res.status(403).json({
-            status: "Error",
-            message: "Admins are not allowed to update Sesi Bongkar Muat",
-          });
-        }
-
-        const isOpen = userRole !== "MANAJER";
+        const userRole = (req as any).user?.roleName?.toUpperCase();
 
         const result = await this.bongkarMuatService.updateSesiBongkarMuat(
           req.params.id,
           req.body,
-          isOpen
+          userRole
         );
 
         await logActivity(req, "UPDATE_SESI_BONGKAR", `Container: ${result.noContainer} (Role: ${userRole})`);

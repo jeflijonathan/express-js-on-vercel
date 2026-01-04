@@ -5,11 +5,11 @@ import Server from "./config/server/server";
 import express from "express";
 import { prisma } from "src/config/database/client";
 
+const app = express();
+
 async function main() {
   try {
     await prisma.$connect();
-
-    const app = express();
 
     const router = new Router(app);
     const server = new Server(app);
@@ -37,4 +37,9 @@ async function main() {
   }
 }
 
-main();
+// Only run the server if this file is executed directly
+if (require.main === module) {
+  main();
+}
+
+export default app;

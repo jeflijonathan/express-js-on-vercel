@@ -32,11 +32,6 @@ export default class Server {
     this.app.get("/api/health-check", (_, res) => {
       res.status(200).json({ status: "OK", message: "Health check passed" });
     });
-
-    const url = `${process.env.DB_CONNECTION}://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_DATABASE}`;
-    var schema = fs.readFileSync("prisma/schema.prisma", "utf-8");
-    schema = schema.replace("_DATABASE_URL_", url);
-    fs.writeFileSync("prisma/schema.prisma", schema);
   }
 
   async listen() {

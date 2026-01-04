@@ -1,11 +1,9 @@
-
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 model Role {
@@ -28,16 +26,19 @@ model Employee {
   updatedAt   DateTime @updatedAt
   status      Boolean
 
-  team        Team[]
-  sesiBongkar SesiBongkar[]
-  user        User[]
-  gaji        Gaji[]  
+  team                 Team[]
+  sesiBongkar            SesiBongkar[]
+  user                    User[]
+  gajiKaryawan             Gaji[]
+  recordGajis             RecordGaji[]
+  recordTarifBongkars    RecordTarifBongkar[]
+  laporan                Laporan[]
 }
 
 model User {
   id         String   @id @default(uuid())
   employeeId String   @unique
-  username   String
+  username   String   @unique
   password   String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -106,9 +107,11 @@ model Angkut {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sesiBongkar  SesiBongkar[]
-  tarifBongkar TarifBongkar[]
-  gajiKaryawan Gaji[]
+  sesiBongkar            SesiBongkar[]
+  tarifBongkar           TarifBongkar[]
+  gajiKaryawan           Gaji[]
+  recordTarifBongkars    RecordTarifBongkar[]
+  recordGajis            RecordGaji[]
 }
 
 model Barang {
@@ -119,8 +122,9 @@ model Barang {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sesiBongkar  SesiBongkar[]
-  tarifBongkar TarifBongkar[]
+  sesiBongkar            SesiBongkar[]
+  tarifBongkar           TarifBongkar[]
+  recordTarifBongkars    RecordTarifBongkar[]
 }
 
 model ContainerSize {
@@ -129,9 +133,11 @@ model ContainerSize {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sesiBongkar  SesiBongkar[]
-  tarifBongkar TarifBongkar[]
-  gajiKaryawan Gaji[]
+  sesiBongkar            SesiBongkar[]
+  tarifBongkar           TarifBongkar[]
+  gajiKaryawan           Gaji[]
+  recordTarifBongkars    RecordTarifBongkar[]
+  recordGajis            RecordGaji[]
 }
 
 model TradeType {
@@ -141,41 +147,40 @@ model TradeType {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sesiBongkar  SesiBongkar[]
-  tarifBongkar TarifBongkar[]
-  gajiKaryawan Gaji[]
+  sesiBongkar            SesiBongkar[]
+  tarifBongkar           TarifBongkar[]
+  gajiKaryawan           Gaji[]
+  recordTarifBongkars    RecordTarifBongkar[]
+  recordGajis            RecordGaji[]
 }
 
-model StatusBongkar {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  sesiBongkar SesiBongkar[]
-}
 
 model SesiBongkar {
   noContainer     String    @unique
-  idKoorLap       String
-  idGroupTeam     String
+  platContainer   String
+  koorlapId       String
   idBarang        Int?
-  idStatusBongkar Int       @default(2)
+
   idContainerSize Int
   idTradeType     Int
   idAngkut        Int
+  idGroupTeam     String
   jasaWrapping    Boolean   @default(false)
   createdAt       DateTime  @default(now())
+  startAT         DateTime
   endAT           DateTime?
   updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
 
   tradeType     TradeType       @relation(fields: [idTradeType], references: [id], onDelete: Cascade)
   angkut        Angkut          @relation(fields: [idAngkut], references: [id], onDelete: Cascade)
   containerSize ContainerSize   @relation(fields: [idContainerSize], references: [id], onDelete: Cascade)
   barang        Barang?         @relation(fields: [idBarang], references: [id], onDelete: Cascade)
-  statusBongkar StatusBongkar   @relation(fields: [idStatusBongkar], references: [id], onDelete: Cascade)
-  koorlap       Employee        @relation(fields: [idKoorLap], references: [id], onDelete: Cascade)
+
+  koorlap       Employee        @relation(fields: [koorlapId], references: [id], onDelete: Cascade)
   groupTeam     GroupTeam       @relation(fields: [idGroupTeam], references: [id], onDelete: Cascade)
+  // groupTeam    GroupTeam[]
   detailLaporan DetailLaporan[]
 }
 
@@ -196,50 +201,100 @@ model TarifBongkar {
 }
 
 model Laporan {
-  id            Int             @id @default(autoincrement())
-  tanggalAwal   DateTime
-  tanggalAkhir  DateTime
+  id           Int       @id @default(autoincrement())
+  tanggalAwal  DateTime
+  tanggalAkhir DateTime
+  koorlapId    String?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   detailLaporan DetailLaporan[]
+
+  recordTarifBongkars RecordTarifBongkar[]
+  recordGajis         RecordGaji[]
+  koorlap             Employee?            @relation(fields: [koorlapId], references: [id])
 }
 
 model DetailLaporan {
-  id            Int         @id @default(autoincrement())
+  id            Int    @id @default(autoincrement())
   idSesiBongkar String
-  gajiKaryawan  Float
-  hargaBongkar  Float
-  biayaWrapping Float       @default(0)
   idLaporan     Int
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  laporan       Laporan     @relation(fields: [idLaporan], references: [id], onDelete: Cascade)
-  sesiBongkar   SesiBongkar @relation(fields: [idSesiBongkar], references: [noContainer], onDelete: Cascade)
+  hargaBongkar  Float  @default(0)
+  biayaWrapping Float  @default(0)
+  gajiKaryawan  Float  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  laporan     Laporan     @relation(fields: [idLaporan], references: [id], onDelete: Cascade)
+  sesiBongkar SesiBongkar @relation(fields: [idSesiBongkar], references: [noContainer], onDelete: Cascade)
+}
+
+model RecordTarifBongkar {
+  id              Int     @id @default(autoincrement())
+  idLaporan       Int
+  idBarang        Int
+  idContainerSize Int
+  idTradeType     Int
+  idAngkut        Int
+  koorlapId       String?
+  jasaWrapping    Boolean @default(false)
+  amount          Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  laporan       Laporan       @relation(fields: [idLaporan], references: [id], onDelete: Cascade)
+  tradeType     TradeType     @relation(fields: [idTradeType], references: [id], onDelete: Cascade)
+  angkut        Angkut        @relation(fields: [idAngkut], references: [id], onDelete: Cascade)
+  containerSize ContainerSize @relation(fields: [idContainerSize], references: [id], onDelete: Cascade)
+  barang        Barang        @relation(fields: [idBarang], references: [id], onDelete: Cascade)
+  koorlap       Employee?     @relation(fields: [koorlapId], references: [id], onDelete: Cascade)
+}
+
+model RecordGaji {
+  id              Int    @id @default(autoincrement())
+  idLaporan       Int
+  angkutId        Int
+  tradeTypeId     Int
+  containerSizeId Int
+  koorlapId       String
+  amount          Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  laporan       Laporan       @relation(fields: [idLaporan], references: [id], onDelete: Cascade)
+  angkut        Angkut        @relation(fields: [angkutId], references: [id], onDelete: Cascade)
+  tradeType     TradeType     @relation(fields: [tradeTypeId], references: [id], onDelete: Cascade)
+  containerSize ContainerSize @relation(fields: [containerSizeId], references: [id], onDelete: Cascade)
+  koorlap       Employee      @relation(fields: [koorlapId], references: [id], onDelete: Cascade)
 }
 
 model Gaji {
-  id              Int           @id @default(autoincrement())
+  id              Int      @id @default(autoincrement())
   angkutId        Int
   tradeTypeId     Int
   containerSizeId Int
   gaji            Float
   koorlapId       String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  angkut          Angkut        @relation(fields: [angkutId], references: [id], onDelete: Cascade)
-  tradeType       TradeType     @relation(fields: [tradeTypeId], references: [id], onDelete: Cascade)
-  containerSize   ContainerSize @relation(fields: [containerSizeId], references: [id], onDelete: Cascade)
-  koorlap         Employee      @relation(fields: [koorlapId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  angkut        Angkut        @relation(fields: [angkutId], references: [id], onDelete: Cascade)
+  tradeType     TradeType     @relation(fields: [tradeTypeId], references: [id], onDelete: Cascade)
+  containerSize ContainerSize @relation(fields: [containerSizeId], references: [id], onDelete: Cascade)
+  koorlap       Employee      @relation(fields: [koorlapId], references: [id], onDelete: Cascade)
 }
 
 model ActivityLog {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   userId      String
-  action      String   
-  description String?  @db.Text
+  action      String
+  description String?   @db.Text
   ipAddress   String?
-  userAgent   String?  @db.Text
-  createdAt   DateTime @default(now())
+  userAgent   String?   @db.Text
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

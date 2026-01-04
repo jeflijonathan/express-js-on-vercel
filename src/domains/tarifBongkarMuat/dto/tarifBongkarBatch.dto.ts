@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const schemaTarifBongkarBatchItem = z.object({
+    id: z.number().optional(),
     idTradeType: z.number(),
     idContainerSize: z.number(),
     idAngkut: z.number(),

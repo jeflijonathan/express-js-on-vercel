@@ -50,7 +50,7 @@ const getCriteria = (col: number, isSimple: boolean): ColumnCriteria | null => {
     if (col === 10) return { trade: "IMPORT", size: "LCL", sizeKeywords: ["HIJAU"] };
     if (col === 11) return { trade: "IMPORT", size: "LCL", sizeKeywords: ["MERAH"] };
 
-    if (col === 12) return { trade: "ALL", size: "ALL", angkut: "ALL", sizeKeywords: ["ALL"], wantsWrapping: true }; // Jasa Wrapping
+    if (col === 12) return { trade: "ALL", size: "ALL", angkut: "ALL", sizeKeywords: ["ALL", "ALLLCL"], wantsWrapping: true }; // Jasa Wrapping
 
     if (col === 13) return { trade: "EXPORT", size: "40", angkut: "FORKLIFT" };
     if (col === 14) return { trade: "EXPORT", size: "40", angkut: "MANUAL" };
@@ -69,7 +69,7 @@ export const resolvePriceForColumn = (col: number, isBarangAll: boolean, allTari
         const wrap = allTariffs.find(t => {
             if (!t.jasaWrapping) return false;
             const name = t.barang?.name?.toLowerCase().trim() || "";
-            return name === "all" || name === "general" || name === "jasa wrapping" || name.includes("lain");
+            return name === "all" || name === "general" || name === "jasa wrapping" || name.includes("lain") || name === "alllcl";
         });
         if (wrap) return wrap.amount;
         console.log(`Col ${col} (Wrapping) - No tariff found for 'ALL'/'General'/'Jasa Wrapping' with jasaWrapping=true`);
@@ -117,7 +117,7 @@ export const resolvePriceForColumn = (col: number, isBarangAll: boolean, allTari
 
     const allMatch = candidates.find(t => {
         const name = t.barang?.name?.toLowerCase().trim() || "";
-        return name === "all" || name === "general" || name.includes("lain");
+        return name === "all" || name === "general" || name.includes("lain") || name === "alllcl";
     });
     if (allMatch) return allMatch.amount;
 

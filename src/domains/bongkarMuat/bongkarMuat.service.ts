@@ -2,7 +2,6 @@ import { Sorter } from "@common/base/basePrismaService";
 import { StatusBadRequest } from "@common/consts/statusCodes";
 import { buildSingleSearch } from "@common/filter/sigleSearch/sigleSearch";
 import BongkarMuatRepository from "src/repository/bongkarMuat/bongkarMuat.repository";
-import { Prisma } from "@prisma/client";
 import UpdateBongkarMuatDTO, {
   IBongkarMuatUpdatePayload,
 } from "./dto/bongkarMuatUpdate.dto";
@@ -15,7 +14,6 @@ import {
   GroupTeamRepository,
   TransportMethodRepository,
 } from "src/repository";
-import { prisma } from "@config/database/client";
 
 class BongkarMuatService {
   private _bongkarRepository;
@@ -44,12 +42,6 @@ class BongkarMuatService {
     };
 
     let sorter: Sorter | undefined;
-
-    if (params.status) {
-      where["statusBongkar"] = {
-        name: params.status,
-      };
-    }
 
     if (params.startDate && params.endDate) {
       where["createdAt"] = {
@@ -80,21 +72,6 @@ class BongkarMuatService {
               },
             },
 
-            groupTeam: {
-              select: {
-                id: true,
-                team: {
-                  select: {
-                    employee: {
-                      select: {
-                        id: true,
-                        namaLengkap: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
 
             barang: {
               select: {
@@ -102,14 +79,6 @@ class BongkarMuatService {
                 name: true,
               },
             },
-
-            statusBongkar: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-
             containerSize: {
               select: {
                 id: true,
@@ -128,6 +97,15 @@ class BongkarMuatService {
               select: {
                 id: true,
                 name: true,
+              },
+            },
+            groupTeam: {
+              include: {
+                team: {
+                  include: {
+                    employee: true,
+                  },
+                },
               },
             },
           },
@@ -152,22 +130,6 @@ class BongkarMuatService {
             },
           },
 
-          groupTeam: {
-            select: {
-              id: true,
-              team: {
-                select: {
-                  employee: {
-                    select: {
-                      id: true,
-                      namaLengkap: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-
           barang: {
             select: {
               id: true,
@@ -175,12 +137,7 @@ class BongkarMuatService {
             },
           },
 
-          statusBongkar: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
+
 
           containerSize: {
             select: {
@@ -199,6 +156,15 @@ class BongkarMuatService {
             select: {
               id: true,
               name: true,
+            },
+          },
+          groupTeam: {
+            include: {
+              team: {
+                include: {
+                  employee: true,
+                },
+              },
             },
           },
         },
@@ -224,6 +190,9 @@ class BongkarMuatService {
         idContainerSize,
         idAngkut,
         jasaWrapping,
+        platContainer,
+        startAT,
+        endAT,
       } = parsed;
 
       const noContainer = `${ownerCode}-${seriContainer}`;
@@ -251,11 +220,12 @@ class BongkarMuatService {
       if (!koorlap) {
         throw { statusCode: 400, message: "Koorlap not found" };
       }
+
       const groupTeam = await this._groupTeamRepository.findOne({
         id: idGroupTeam,
       });
       if (!groupTeam) {
-        throw { statusCode: 400, message: "Group team not found" };
+        throw { statusCode: 400, message: `Group team ${idGroupTeam} not found` };
       }
 
       const containerSize = await this._containerSizeRepository.findOne({
@@ -271,21 +241,21 @@ class BongkarMuatService {
         throw { statusCode: 400, message: "Transport method not found" };
       }
 
-      const data: Prisma.SesiBongkarCreateInput = {
+      const data: any = {
         noContainer: noContainer.toUpperCase(),
         koorlap: {
           connect: {
             id: idKoorlap,
           },
         },
-        groupTeam: {
-          connect: {
-            id: idGroupTeam,
-          },
-        },
         barang: {
           connect: {
             id: idBarang,
+          },
+        },
+        groupTeam: {
+          connect: {
+            id: idGroupTeam,
           },
         },
         containerSize: {
@@ -304,6 +274,9 @@ class BongkarMuatService {
           },
         },
         jasaWrapping: jasaWrapping,
+        platContainer: platContainer,
+        startAT: new Date(startAT),
+        endAT: endAT ? new Date(endAT) : null,
       };
 
       if (!data) {
@@ -337,6 +310,9 @@ class BongkarMuatService {
         idContainerSize,
         idAngkut,
         jasaWrapping,
+        platContainer,
+        startAT,
+        endAT,
       } = parsed;
 
       const noContainer = `${ownerCode}-${seriContainer}`;
@@ -369,7 +345,7 @@ class BongkarMuatService {
         id: idGroupTeam,
       });
       if (!groupTeam) {
-        throw { statusCode: 400, message: "Group team not found" };
+        throw { statusCode: 400, message: `Group team ${idGroupTeam} not found` };
       }
 
       const containerSize = await this._containerSizeRepository.findOne({
@@ -384,7 +360,7 @@ class BongkarMuatService {
       if (!angkut)
         throw { statusCode: 400, message: "Transport method not found" };
 
-      const data: Prisma.SesiBongkarCreateInput = {
+      const data: any = {
         noContainer: noContainer.toUpperCase(),
         koorlap: { connect: { id: idKoorlap } },
         groupTeam: { connect: { id: idGroupTeam } },
@@ -393,6 +369,9 @@ class BongkarMuatService {
         tradeType: { connect: { id: 1 } },
         angkut: { connect: { id: idAngkut } },
         jasaWrapping: false,
+        platContainer: platContainer,
+        startAT: new Date(startAT),
+        endAT: endAT ? new Date(endAT) : null,
       };
 
       if (!data) {
@@ -413,7 +392,7 @@ class BongkarMuatService {
   updateSesiBongkarMuat = async (
     id: string,
     body: IBongkarMuatUpdatePayload,
-    isOpen: boolean
+    userRole: string
   ) => {
     try {
       const parsed = await UpdateBongkarMuatDTO.fromUpdateBongkarMuat(body);
@@ -423,15 +402,18 @@ class BongkarMuatService {
         idKoorlap,
         idGroupTeam,
         jasaWrapping,
-        idStatusBongkar,
+
         idBarang,
         idContainerSize,
         idAngkut,
+        idTradeType,
+        platContainer,
+        startAT,
+        endAT,
       } = parsed;
 
       const existing = await this._bongkarRepository.findById(id, {
         include: {
-          statusBongkar: true,
           tradeType: true,
         },
       });
@@ -439,8 +421,21 @@ class BongkarMuatService {
         throw { statusCode: 404, message: "Bongkar muat not found" };
       }
 
-      const newNoContainer = `${ownerCode}-${seriContainer}`;
+      const isManajer = userRole === "MANAJER" || userRole === "ADMIN";
+
+      // Manajer/Admin can edit anything
+      if (!isManajer) {
+        // Non-managers have limited editing capabilities
+        // You can add additional restrictions here if needed
+      }
+
+      const newNoContainer =
+        ownerCode !== undefined && seriContainer !== undefined
+          ? `${ownerCode}-${seriContainer}`
+          : existing.noContainer;
       const oldNoContainer = existing.noContainer;
+
+
 
       if (newNoContainer !== oldNoContainer) {
         const duplicate = await this._bongkarRepository.findOne({
@@ -456,48 +451,106 @@ class BongkarMuatService {
         }
       }
 
-      if (isOpen && existing.statusBongkar.name.toUpperCase() === "DONE") {
-        throw {
-          status: "Error",
-          statusCode: 400,
-          message: "Data sudah Done dan tidak dapat diedit",
-        };
+      if (idKoorlap) {
+        const koorlap = await this._employeeRepository.findOne({ id: idKoorlap });
+        if (!koorlap) {
+          throw { statusCode: 400, message: "Koorlap not found" };
+        }
       }
 
-      const koorlap = await this._employeeRepository.findOne({ id: idKoorlap });
-      if (!koorlap) {
-        throw { statusCode: 400, message: "Koorlap not found" };
+      if (idGroupTeam) {
+        const groupTeam = await this._groupTeamRepository.findOne({
+          id: idGroupTeam,
+        });
+        if (!groupTeam) {
+          throw { statusCode: 400, message: `Group team ${idGroupTeam} not found` };
+        }
       }
 
-      const groupTeam = await this._groupTeamRepository.findOne({
-        id: idGroupTeam,
-      });
-      if (!groupTeam) {
-        throw { statusCode: 400, message: "Group team not found" };
+
+
+      const finalTradeTypeId = idTradeType ?? existing.tradeType.id;
+      const isExport = finalTradeTypeId === 1;
+
+      let finalIdBarang = idBarang;
+      if (isExport) {
+        const barangAll = await this._barangRepository.findOne({ name: "ALL" });
+        if (barangAll) {
+          finalIdBarang = barangAll.id;
+        }
       }
 
-      const statusBongkar = await prisma.statusBongkar.findFirst({
-        where: {
-          id: idStatusBongkar,
-        },
-      });
-      if (!statusBongkar) {
-        throw { statusCode: 400, message: "Status bongkar not found" };
-      }
-
-      const isExport = existing.tradeType.id === 1;
-
-      const data = {
+      const data: any = {
         noContainer: newNoContainer,
-        koorlap: { connect: { id: idKoorlap } },
-        groupTeam: { connect: { id: idGroupTeam } },
-        jasaWrapping: isExport ? false : jasaWrapping,
-        endAT: statusBongkar.name.toUpperCase() === "DONE" ? new Date() : null,
-        statusBongkar: { connect: { id: idStatusBongkar } },
-        barang: idBarang ? { connect: { id: idBarang } } : undefined,
-        containerSize: idContainerSize ? { connect: { id: idContainerSize } } : undefined,
-        angkut: idAngkut ? { connect: { id: idAngkut } } : undefined,
+        platContainer: platContainer ?? existing.platContainer,
+        jasaWrapping: isExport ? false : (jasaWrapping ?? existing.jasaWrapping),
+        groupTeam: idGroupTeam ? { connect: { id: idGroupTeam } } : undefined,
+        barang: finalIdBarang ? { connect: { id: finalIdBarang } } : undefined,
+        containerSize: idContainerSize
+          ? { connect: { id: idContainerSize } }
+          : (existing.idContainerSize ? { connect: { id: existing.idContainerSize } } : undefined),
+        angkut: idAngkut ? { connect: { id: idAngkut } } : (existing.idAngkut ? { connect: { id: existing.idAngkut } } : undefined),
       };
+
+      if (idKoorlap) {
+        data.koorlap = { connect: { id: idKoorlap } };
+      }
+
+
+      if (idTradeType && idTradeType !== existing.tradeType.id) {
+        data.tradeType = { connect: { id: idTradeType } };
+      }
+
+      // Update startAT and endAT logic
+      if (isManajer) {
+        if (startAT) {
+          data.startAT = new Date(startAT);
+        }
+        if (endAT !== undefined) {
+          data.endAT = endAT ? new Date(endAT) : null;
+        }
+      } else if (userRole === "SPV") {
+        // SPV strict validation
+        if (
+          newNoContainer !== existing.noContainer ||
+          (idKoorlap && idKoorlap !== existing.koorlapId) ||
+          (idGroupTeam && idGroupTeam !== existing.idGroupTeam) ||
+          (jasaWrapping !== undefined && jasaWrapping !== existing.jasaWrapping) ||
+          (idBarang && idBarang !== existing.idBarang) ||
+          (idContainerSize && idContainerSize !== existing.idContainerSize) ||
+          (idAngkut && idAngkut !== existing.idAngkut) ||
+          (idTradeType && idTradeType !== existing.tradeType.id) ||
+          (platContainer && platContainer !== existing.platContainer) ||
+          (startAT && new Date(startAT).getTime() !== new Date(existing.startAT).getTime())
+        ) {
+          throw {
+            statusCode: StatusBadRequest,
+            message:
+              "SPV only allowed to update End Time. Other information is read-only.",
+          };
+        }
+
+        if (endAT !== undefined) {
+          if (existing.endAT !== null) {
+            throw {
+              statusCode: StatusBadRequest,
+              message: "End Time has already been set and cannot be changed by SPV."
+            };
+          }
+          data.endAT = endAT ? new Date(endAT) : null;
+        } else {
+          // If SPV is not updating endAT, there's nothing for them to do here
+          throw {
+            statusCode: StatusBadRequest,
+            message: "No changes provided or not allowed for SPV."
+          };
+        }
+
+        // Clean up data object for SPV to be absolutely sure only endAT is updated
+        // prisma connect/set might still be in 'data' from initialization above
+        const spvData: any = { endAT: data.endAT };
+        return await this._bongkarRepository.updateSesiBongkar(id, spvData);
+      }
 
       return await this._bongkarRepository.updateSesiBongkar(id, data);
     } catch (error) {

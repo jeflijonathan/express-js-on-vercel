@@ -188,7 +188,7 @@ export default class CommonOptionsServices {
       },
       ListTeam: group.team.map((item) => ({
         id: item.id,
-        namaLengkap: item.employee.namaLengkap,
+        namaLengkap: item.employee?.namaLengkap || "Unknown",
       })),
     }));
     return mappedData;
@@ -197,7 +197,7 @@ export default class CommonOptionsServices {
   public async findContainerSize(params: any = {}) {
     const where: any = {};
     if (params.filter === "true") {
-      where.name = { not: "ALL" };
+      where.name = { notIn: ["ALL", "ALLLCL", "ALL LCL"] };
     }
     return await prisma.containerSize.findMany({ where });
   }
@@ -215,7 +215,5 @@ export default class CommonOptionsServices {
     return await prisma.team.findMany();
   }
 
-  public async findStatusBongkar() {
-    return prisma.statusBongkar.findMany();
-  }
+
 }

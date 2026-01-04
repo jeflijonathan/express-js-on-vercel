@@ -75,6 +75,10 @@ class LaporanBongkarMuatService {
                             include: {
                                 sesiBongkar: {
                                     include: {
+                                        containerSize: true,
+                                        tradeType: true,
+                                        angkut: true,
+                                        barang: true,
                                         groupTeam: {
                                             include: {
                                                 team: {
@@ -84,11 +88,6 @@ class LaporanBongkarMuatService {
                                                 },
                                             },
                                         },
-                                        containerSize: true,
-                                        tradeType: true,
-                                        angkut: true,
-                                        barang: true,
-                                        statusBongkar: true,
                                     },
                                 },
                             },
@@ -110,6 +109,10 @@ class LaporanBongkarMuatService {
                     include: {
                         sesiBongkar: {
                             include: {
+                                containerSize: true,
+                                tradeType: true,
+                                angkut: true,
+                                barang: true,
                                 groupTeam: {
                                     include: {
                                         team: {
@@ -119,11 +122,6 @@ class LaporanBongkarMuatService {
                                         },
                                     },
                                 },
-                                containerSize: true,
-                                tradeType: true,
-                                angkut: true,
-                                barang: true,
-                                statusBongkar: true,
                             },
                         },
                     },
@@ -157,32 +155,31 @@ class LaporanBongkarMuatService {
             };
         }
 
-        const sesiBongkarList = await prisma.sesiBongkar.findMany({
-            where: {
-                createdAt: {
-                    gte: startDate,
-                    lte: endDate,
-                },
-                statusBongkar: {
-                    name: "DONE",
-                },
+        const whereSesi: Prisma.SesiBongkarWhereInput = {
+            startAT: {
+                gte: startDate,
+                lte: endDate,
             },
+
+        };
+
+        if (parsed.koorlapIds && parsed.koorlapIds.length > 0) {
+            whereSesi.koorlapId = { in: parsed.koorlapIds };
+        }
+
+        const sesiBongkarList = await prisma.sesiBongkar.findMany({
+            where: whereSesi,
             include: {
                 containerSize: true,
                 tradeType: true,
                 angkut: true,
-                groupTeam: {
-                    include: {
-                        team: true,
-                    },
-                },
             },
         });
 
         if (sesiBongkarList.length === 0) {
             throw {
                 statusCode: StatusBadRequest,
-                message: "Tidak ada data Sesi Bongkar yang sudah DONE pada rentang tanggal tersebut",
+                message: "Tidak ada data Sesi Bongkar pada rentang tanggal tersebut",
             };
         }
 
@@ -193,10 +190,52 @@ class LaporanBongkarMuatService {
             include: { angkut: true }
         });
 
+        const singleKoorlapId = parsed.koorlapIds && parsed.koorlapIds.length === 1 ? parsed.koorlapIds[0] : null;
+
         const laporan = await prisma.laporan.create({
             data: {
                 tanggalAwal: startDate,
                 tanggalAkhir: endDate,
+                koorlapId: singleKoorlapId,
+            },
+        });
+
+        // Snapshot rates
+        const recordStevedoringData = tarifBongkar.map(t => ({
+            idLaporan: laporan.id,
+            idBarang: t.idBarang,
+            idContainerSize: t.idContainerSize,
+            idTradeType: t.idTradeType,
+            idAngkut: t.idAngkut,
+            jasaWrapping: t.jasaWrapping,
+            amount: t.amount
+        }));
+
+        const recordWageData = gajiTable.map(g => ({
+            idLaporan: laporan.id,
+            angkutId: g.angkutId,
+            tradeTypeId: g.tradeTypeId,
+            containerSizeId: g.containerSizeId,
+            koorlapId: g.koorlapId,
+            amount: g.gaji
+        }));
+
+        if (recordStevedoringData.length > 0) {
+            await prisma.recordTarifBongkar.createMany({ data: recordStevedoringData });
+        }
+        if (recordWageData.length > 0) {
+            await prisma.recordGaji.createMany({ data: recordWageData });
+        }
+
+        const teamMemberCounts = await prisma.team.groupBy({
+            by: ["idGroupTeam"],
+            _count: {
+                id: true,
+            },
+            where: {
+                idGroupTeam: {
+                    in: sesiBongkarList.map((s) => s.idGroupTeam),
+                },
             },
         });
 
@@ -209,7 +248,7 @@ class LaporanBongkarMuatService {
                 const getScore = (t: typeof tarifBongkar[0]) => {
                     let score = 0;
                     if (t.idContainerSize === sesi.idContainerSize) score += 100;
-                    else if (t.containerSize?.name?.toLowerCase() === "all" || t.containerSize?.name?.toLowerCase() === "all size") score += 50;
+                    else if (t.containerSize?.name?.toLowerCase() === "all" || t.containerSize?.name?.toLowerCase() === "all size" || t.containerSize?.name?.toLowerCase() === "alllcl") score += 50;
                     else return -1;
 
                     if (t.idBarang === sesi.idBarang) score += 10;
@@ -247,7 +286,7 @@ class LaporanBongkarMuatService {
                 (g) =>
                     g.containerSizeId === sesi.idContainerSize &&
                     g.tradeTypeId === sesi.idTradeType &&
-                    g.koorlapId === sesi.idKoorLap
+                    g.koorlapId === sesi.koorlapId
             );
 
             let gajiEntry = gajiCandidates.find(g => g.angkutId === sesi.idAngkut);
@@ -255,7 +294,8 @@ class LaporanBongkarMuatService {
                 gajiEntry = gajiCandidates.find(g => g.angkut?.name?.toUpperCase() === "ALL");
             }
 
-            const teamMemberCount = sesi.groupTeam?.team?.length || 1;
+            const teamMemberCount =
+                teamMemberCounts.find((t) => t.idGroupTeam === sesi.idGroupTeam)?._count.id || 1;
             const gajiKaryawan = (gajiEntry?.gaji || 0) * teamMemberCount;
 
             return {
@@ -301,25 +341,29 @@ class LaporanBongkarMuatService {
             where: { idLaporan: id },
         });
 
-        const sesiBongkarList = await prisma.sesiBongkar.findMany({
-            where: {
-                createdAt: {
-                    gte: tanggalAwal,
-                    lte: tanggalAkhir,
-                },
-                statusBongkar: {
-                    name: "DONE",
-                },
+        await prisma.recordTarifBongkar.deleteMany({ where: { idLaporan: id } });
+        await prisma.recordGaji.deleteMany({ where: { idLaporan: id } });
+
+        const whereSesi: Prisma.SesiBongkarWhereInput = {
+            startAT: {
+                gte: tanggalAwal,
+                lte: tanggalAkhir,
             },
+
+        };
+
+        const finalKoorlapIds = parsed.koorlapIds || (existingLaporan.koorlapId ? [existingLaporan.koorlapId] : []);
+
+        if (finalKoorlapIds.length > 0) {
+            whereSesi.koorlapId = { in: finalKoorlapIds };
+        }
+
+        const sesiBongkarList = await prisma.sesiBongkar.findMany({
+            where: whereSesi,
             include: {
                 containerSize: true,
                 tradeType: true,
                 angkut: true,
-                groupTeam: {
-                    include: {
-                        team: true,
-                    },
-                },
             },
         });
 
@@ -337,6 +381,45 @@ class LaporanBongkarMuatService {
             include: { angkut: true }
         });
 
+        // Update snapshot rates
+        const recordStevedoringData = tarifBongkar.map(t => ({
+            idLaporan: id,
+            idBarang: t.idBarang,
+            idContainerSize: t.idContainerSize,
+            idTradeType: t.idTradeType,
+            idAngkut: t.idAngkut,
+            jasaWrapping: t.jasaWrapping,
+            amount: t.amount
+        }));
+
+        const recordWageData = gajiTable.map(g => ({
+            idLaporan: id,
+            angkutId: g.angkutId,
+            tradeTypeId: g.tradeTypeId,
+            containerSizeId: g.containerSizeId,
+            koorlapId: g.koorlapId,
+            amount: g.gaji
+        }));
+
+        if (recordStevedoringData.length > 0) {
+            await prisma.recordTarifBongkar.createMany({ data: recordStevedoringData });
+        }
+        if (recordWageData.length > 0) {
+            await prisma.recordGaji.createMany({ data: recordWageData });
+        }
+
+        const teamMemberCounts = await prisma.team.groupBy({
+            by: ["idGroupTeam"],
+            _count: {
+                id: true,
+            },
+            where: {
+                idGroupTeam: {
+                    in: sesiBongkarList.map((s) => s.idGroupTeam),
+                },
+            },
+        });
+
         const detailLaporanData = sesiBongkarList.map((sesi) => {
             const resolvePrice = (isWrapping: boolean) => {
                 const subset = tarifBongkar.filter(
@@ -346,7 +429,7 @@ class LaporanBongkarMuatService {
                 const getScore = (t: typeof tarifBongkar[0]) => {
                     let score = 0;
                     if (t.idContainerSize === sesi.idContainerSize) score += 100;
-                    else if (t.containerSize?.name?.toLowerCase() === "all" || t.containerSize?.name?.toLowerCase() === "all size") score += 50;
+                    else if (t.containerSize?.name?.toLowerCase() === "all" || t.containerSize?.name?.toLowerCase() === "all size" || t.containerSize?.name?.toLowerCase() === "alllcl") score += 50;
                     else return -1;
 
                     if (t.idBarang === sesi.idBarang) score += 10;
@@ -385,7 +468,7 @@ class LaporanBongkarMuatService {
                 (g) =>
                     g.containerSizeId === sesi.idContainerSize &&
                     g.tradeTypeId === sesi.idTradeType &&
-                    g.koorlapId === sesi.idKoorLap
+                    g.koorlapId === sesi.koorlapId
             );
 
             let gajiEntry = gajiCandidates.find(g => g.angkutId === sesi.idAngkut);
@@ -393,7 +476,8 @@ class LaporanBongkarMuatService {
                 gajiEntry = gajiCandidates.find(g => g.angkut?.name?.toUpperCase() === "ALL");
             }
 
-            const teamMemberCount = sesi.groupTeam?.team?.length || 1;
+            const teamMemberCount =
+                teamMemberCounts.find((t) => t.idGroupTeam === sesi.idGroupTeam)?._count.id || 1;
             const gajiKaryawan = (gajiEntry?.gaji || 0) * teamMemberCount;
 
             return {
@@ -411,14 +495,16 @@ class LaporanBongkarMuatService {
             });
         }
 
+        const singleKoorlapId = finalKoorlapIds.length === 1 ? finalKoorlapIds[0] : null;
+
         await this._laporanRepository.updateLaporan(id, {
-            tanggalAwal,
-            tanggalAkhir,
+            tanggalAwal: tanggalAwal,
+            tanggalAkhir: tanggalAkhir,
+            koorlap: singleKoorlapId ? { connect: { id: singleKoorlapId } } : { disconnect: true }
         });
 
         return this.findById(id);
     };
-
     delete = async (id: number) => {
         const existingLaporan = await this._laporanRepository.findById(id);
         if (!existingLaporan) {

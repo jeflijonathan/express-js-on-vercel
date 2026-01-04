@@ -22,7 +22,7 @@ class TarifBongkarService {
     this._barangRepository = new BarangRepository();
   }
 
-  findTarifBongkarMuat = async (req: any, params: any = {}, queryParams: any = {}) => {
+  findTarifBongkarMuat = async (queryParams: any = {}) => {
     const { value, page = 1, limit = 10 } = queryParams;
 
     let where: any = {};
@@ -52,13 +52,10 @@ class TarifBongkarService {
       }
     }
 
-    const [data, total] = await Promise.all([
+    const data =
       this._bongkarRepository.findAll(
         where,
-        {
-          page,
-          limit,
-        },
+        undefined,
         {
           select: {
             id: true,
@@ -101,11 +98,9 @@ class TarifBongkarService {
           },
         },
         sorter
-      ),
-      this._bongkarRepository.count({ query: where }),
-    ]);
+      );
 
-    return { data, total };
+    return data;
   };
 
   findTarifBongkarMuatById = async (id: number) => {
@@ -243,6 +238,7 @@ class TarifBongkarService {
 
     for (const item of items) {
       const {
+        id,
         idTradeType,
         idContainerSize,
         idAngkut,
@@ -251,21 +247,23 @@ class TarifBongkarService {
         jasaWrapping,
       } = item;
 
-      const existing = await this._bongkarRepository.findOne({
-        idBarang,
-        idContainerSize,
-        idTradeType,
-        idAngkut,
-        jasaWrapping,
-      });
-
-      if (existing) {
+      if (id) {
+        // Direct update by ID - most robust method for existing records
         results.push(
-          await this._bongkarRepository.updateTarifBongkar(existing.id, {
+          await this._bongkarRepository.updateTarifBongkar(id, {
             amount,
           })
         );
       } else {
+        // Fallback for new records or ID-less payload: Delete duplicates and create fresh
+        await this._bongkarRepository.deleteMany({
+          idBarang,
+          idContainerSize,
+          idTradeType,
+          idAngkut,
+          jasaWrapping,
+        });
+
         results.push(
           await this._bongkarRepository.createTarifBongkar({
             barang: { connect: { id: idBarang } },

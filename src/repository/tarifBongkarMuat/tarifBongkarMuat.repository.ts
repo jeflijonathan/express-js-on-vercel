@@ -48,6 +48,11 @@ class TarifBongkarMuatRepository extends BasePrismaService<
   async deleteTarifBongkar(id: number) {
     return this.delete({ id });
   }
+
+  async deleteMany(where: Prisma.TarifBongkarWhereInput) {
+    return this.model.deleteMany({ where });
+  }
+
 }
 
 export default TarifBongkarMuatRepository;

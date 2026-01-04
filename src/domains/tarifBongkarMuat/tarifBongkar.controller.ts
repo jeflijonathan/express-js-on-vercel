@@ -49,29 +49,15 @@ class TarifBongkarController extends BaseController {
       async (req: Request, res: Response) => {
         const queryParams: any = QueryParsed(req);
 
-        const { skip, take, page, limit } = getPagination({
-          limit: queryParams.limit,
-          page: queryParams.page,
-        });
-
-        const [error, result] = await catchError<{
-          data: any[];
-          total: number;
-        }>(this.bongkarMuatService.findTarifBongkarMuat(req, { ...req.query, skip, take }, queryParams));
+        const [error, result] = await catchError<
+          TarifBongkarResponseModel[]
+        >(this.bongkarMuatService.findTarifBongkarMuat(queryParams));
 
         if (error) return this.handleError(res, error);
 
-        return this.handleSuccess<WithPaginations<TarifBongkarResponseModel[]>>(
+        return this.handleSuccess<TarifBongkarResponseModel[]>(
           res,
-          {
-            data: result.data as TarifBongkarResponseModel[],
-            pagination: {
-              page,
-              limit,
-              total_items: result.total,
-              total_pages: Math.ceil(result.total / limit),
-            },
-          },
+          result,
           "Tarif Bongkar Muat fetched successfully"
         );
       });

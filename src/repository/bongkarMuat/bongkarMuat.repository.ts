@@ -24,7 +24,8 @@ class BongkarMuatRepository extends BasePrismaService<
     },
     sorter?: Sorter
   ) {
-    return this.find({ query: where, sorter: sorter }, paginator, options);
+    const query = { ...where, deletedAt: null };
+    return this.find({ query: query, sorter: sorter }, paginator, options);
   }
 
   async findById(
@@ -34,7 +35,7 @@ class BongkarMuatRepository extends BasePrismaService<
       include?: Prisma.SesiBongkarInclude;
     }
   ) {
-    return this.findOne({ noContainer: id }, options);
+    return this.findOne({ noContainer: id, deletedAt: null }, options);
   }
 
   async createSesiBongkar(data: Prisma.SesiBongkarCreateInput) {
@@ -46,7 +47,7 @@ class BongkarMuatRepository extends BasePrismaService<
   }
 
   async deleteSesiBongkar(noContainer: string) {
-    return this.delete({ noContainer });
+    return this.update({ noContainer }, { deletedAt: new Date() });
   }
 }
 

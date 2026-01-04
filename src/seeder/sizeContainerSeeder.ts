@@ -7,6 +7,7 @@ const containerSizeItemSeeder = async () => {
       { name: "40 feet" },
       { name: "LCL(merah)" },
       { name: "LCL(hijau)" },
+      { name: "ALLLCL" },
       { name: "ALL" },
     ],
     skipDuplicates: true,

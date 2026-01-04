@@ -67,6 +67,13 @@ class AuthService {
       };
     }
 
+    if (!user.employee?.status) {
+      throw {
+        statusCode: StatusBadRequest,
+        message: "Your account is inactive. Please contact administrator.",
+      };
+    }
+
     // Cleanup expired tokens
     await this._userRepository.deleteExpiredTokens();
 
@@ -141,6 +148,13 @@ class AuthService {
         };
       }
 
+      if (!user.employee?.status) {
+        throw {
+          statusCode: 401,
+          message: "Your account is inactive. Please contact administrator.",
+        };
+      }
+
       const newAccessToken = this.jwtService.generateAccessToken({
         id: user.id,
         sessionId: storedToken.id,
@@ -173,7 +187,7 @@ class AuthService {
     );
 
     if (!user) {
-      throw { statusCode: StatusBadRequest, message: "User not found" };
+      return { message: "Verification email sent" };
     }
 
     await this._passwordResetTokenRepository.deleteExpiredTokens();
@@ -266,6 +280,35 @@ class AuthService {
       const parsed = await UpdateProfileDTO.fromUpdateProfile(body);
 
       const { newPassword, username, email, namaLengkap } = parsed;
+
+      const currUser = await this._userRepository.findById(id);
+
+      if (!currUser) {
+        throw { statusCode: StatusBadRequest, message: "User not found" };
+      }
+
+      if (email) {
+        const existingEmail = await this._employeeRepository.findOne({
+          email: email,
+          id: { not: currUser.employeeId },
+        });
+        if (existingEmail) {
+          throw { statusCode: StatusBadRequest, message: "Email already in use" };
+        }
+      }
+
+      if (username) {
+        const existingUsername = await this._userRepository.findOne({
+          username: username,
+          id: { not: id },
+        });
+        if (existingUsername) {
+          throw {
+            statusCode: StatusBadRequest,
+            message: "Username already in use",
+          };
+        }
+      }
 
       var hashedPassword: string | undefined = undefined;
 

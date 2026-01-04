@@ -74,7 +74,7 @@ export default class GroupTeamService {
         },
         ListTeam: group.team.map((item) => ({
           id: item.id,
-          namaLengkap: item.employee.namaLengkap,
+          namaLengkap: item.employee?.namaLengkap || "Unknown",
         })),
       }));
 

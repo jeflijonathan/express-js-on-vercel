@@ -11,6 +11,8 @@ export interface IBongkarMuatPayload {
   idTradeType: number;
   idAngkut: number;
   jasaWrapping: boolean;
+  startAT: string;
+  endAT: string;
 }
 
 class CreateBongkarMuatDTO extends BaseDTO {
@@ -24,6 +26,8 @@ class CreateBongkarMuatDTO extends BaseDTO {
     idTradeType: z.number().min(1, "id trade type is required."),
     idAngkut: z.number().min(1, "id angkut is required."),
     jasaWrapping: z.boolean(),
+    startAT: z.string().min(1, "start at is required."),
+    endAT: z.string().min(1, "end at is required."),
   });
 
   static async fromCreateBongkarMuat(payload: IBongkarMuatPayload) {

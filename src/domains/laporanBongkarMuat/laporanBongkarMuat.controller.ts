@@ -18,7 +18,7 @@ class LaporanBongkarMuatController extends BaseController {
         this.getAll();
         this.getById();
         this.create();
-        this.update();
+
         this.delete();
     }
 
@@ -93,22 +93,6 @@ class LaporanBongkarMuatController extends BaseController {
             });
     }
 
-    update() {
-        this.router.put("/laporan-bongkar-muat/:id", authenticateToken,
-            authorizeRoles("MANAJER"), async (req: Request, res: Response) => {
-                const [error, result] = await catchError<LaporanBongkarMuatResponseModel>(
-                    this._laporanService.update(Number(req.params.id), req.body)
-                );
-
-                if (error) return this.handleError(res, error);
-
-                return this.handleSuccess(
-                    res,
-                    result,
-                    "Laporan bongkar muat updated successfully"
-                );
-            });
-    }
 
     delete() {
         this.router.delete("/laporan-bongkar-muat/:id", authenticateToken,

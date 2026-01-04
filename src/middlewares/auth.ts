@@ -29,6 +29,15 @@ const authorizeRoles = (...allowedRoles: string[]) => {
         };
       }
 
+      if (!user.employee.status) {
+        throw {
+          statusCode: 403,
+          message: "Your account is inactive. Please contact administrator.",
+        };
+      }
+
+      (req as any).user.roleName = user.employee.role.name;
+
       next();
     } catch (error) {
       next(error);

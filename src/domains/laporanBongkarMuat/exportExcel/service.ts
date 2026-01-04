@@ -30,28 +30,51 @@ class ExcelLaporanBongkarMuatService {
                     include: {
                         sesiBongkar: {
                             include: {
+                                koorlap: true,
                                 barang: true,
                                 angkut: true,
                                 tradeType: true,
                                 containerSize: true,
-                                groupTeam: {
-                                    include: {
-                                        team: {
-                                            include: {
-                                                employee: true
-                                            }
-                                        }
-                                    }
-                                }
                             },
                         },
                     },
                 },
+                recordTarifBongkars: {
+                    include: {
+                        barang: true,
+                        tradeType: true,
+                        containerSize: true,
+                        angkut: true
+                    }
+                },
+                recordGajis: {
+                    include: {
+                        angkut: true,
+                        tradeType: true,
+                        containerSize: true
+                    }
+                }
             },
         }) as unknown as LaporanBongkarMuatResponseModel;
         if (!laporan) {
             throw new Error("Data not found");
         }
+
+        const groupTeamIds = Array.from(new Set(laporan.detailLaporan.map(d => d.sesiBongkar.idGroupTeam)));
+        const groupTeams = await prisma.groupTeam.findMany({
+            where: { id: { in: groupTeamIds } },
+            include: {
+                team: {
+                    include: {
+                        employee: true
+                    }
+                }
+            }
+        });
+
+        laporan.detailLaporan.forEach(d => {
+            d.sesiBongkar.groupTeam = groupTeams.find(gt => gt.id === d.sesiBongkar.idGroupTeam);
+        });
 
         worksheet.mergeCells("A4:A8");
         worksheet.getCell("A4").value = "Tanggal";
@@ -77,19 +100,12 @@ class ExcelLaporanBongkarMuatService {
         }
 
         let startRow = 9;
-        const isBarangAll = laporan.detailLaporan.some((d) => {
+        const isBarangAll = laporan.detailLaporan.every((d) => {
             const name = (d.sesiBongkar as any).barang?.name || "NULL";
             return name.trim().toUpperCase() === "ALL";
         });
 
-        const allTariffs = await prisma.tarifBongkar.findMany({
-            include: {
-                barang: true,
-                tradeType: true,
-                containerSize: true,
-                angkut: true
-            }
-        });
+        const allTariffs = laporan.recordTarifBongkars;
         const tariffMap = new Map<string, number>();
         const tariffGroupMap = new Map<string, Array<{ idBarang: number; amount: number; jasaWrapping: boolean; barangName: string }>>();
 
@@ -117,13 +133,7 @@ class ExcelLaporanBongkarMuatService {
             tariffGroupMap.set(groupKey, group);
         });
 
-        const allGaji = await prisma.gaji.findMany({
-            include: {
-                angkut: true,
-                tradeType: true,
-                containerSize: true
-            }
-        });
+        const allGaji = laporan.recordGajis;
 
         const resolveWage = (tradeLabel: string, sizeLabel: string, angkutLabel: string, koorlapId: string) => {
             const findMatch = (sizeSearch: string) => {
@@ -138,7 +148,7 @@ class ExcelLaporanBongkarMuatService {
                     const tradeMatch = gTrade === "ALL" ||
                         (tradeTarget.includes("IMPORT") ? gTrade.includes("IMPORT") : gTrade.includes("EXPORT"));
 
-                    let sizeMatch = gSize === "ALL";
+                    let sizeMatch = gSize === "ALL" || gSize === "ALLLCL";
                     if (!sizeMatch) {
                         const searchTokens = sizeSearch.toUpperCase().match(/[A-Z0-9]+/g) || [];
                         const dbTokens = gSize.match(/[A-Z0-9]+/g) || [];
@@ -162,7 +172,7 @@ class ExcelLaporanBongkarMuatService {
                 match = findMatch("ALL");
             }
 
-            return match ? match.gaji : 0;
+            return match ? match.amount : 0;
         };
 
         const getWageRates = (koorlapId: string) => [
@@ -197,20 +207,50 @@ class ExcelLaporanBongkarMuatService {
         const aggregates = new Map<number, { count: number; totalAmount: number }>();
         const wageTotalAggregates = new Array(10).fill(0);
 
-        const teamMapping = new Map<string, { colStart: number; name: string; aggregates: number[]; koorlapId: string }>();
-        const uniqueTeamIds = Array.from(new Set(laporan.detailLaporan.map(d => d.sesiBongkar.idGroupTeam)));
+        // Group by Team ID AND Koorlap ID to separate them into different column blocks
+        const teamMapping = new Map<string, { colStart: number; name: string; aggregates: number[]; koorlapId: string; teamId: string }>();
 
-        uniqueTeamIds.forEach((teamId, index) => {
-            const detail = laporan.detailLaporan.find(d => d.sesiBongkar.idGroupTeam === teamId);
+        // Create a unique key based on groupTeamId and koorlapId
+        const uniqueGroupKeys = Array.from(new Set(laporan.detailLaporan.map(d => {
+            return `${d.sesiBongkar.idGroupTeam}#${d.sesiBongkar.koorlapId}`;
+        })));
+
+        // Sort keys to maintain consistent order (optional, by koorlap name maybe?)
+        uniqueGroupKeys.sort((a, b) => {
+            const [_teamA, koorlapA] = a.split('#');
+            const [_teamB, koorlapB] = b.split('#');
+            // get names for sorting
+            const detailA = laporan.detailLaporan.find(d => d.sesiBongkar.koorlapId === koorlapA);
+            const detailB = laporan.detailLaporan.find(d => d.sesiBongkar.koorlapId === koorlapB);
+            const nameA = (detailA?.sesiBongkar as any)?.koorlap?.namaLengkap || "";
+            const nameB = (detailB?.sesiBongkar as any)?.koorlap?.namaLengkap || "";
+            return nameA.localeCompare(nameB);
+        });
+
+        uniqueGroupKeys.forEach((key, index) => {
+            const [teamId, koorlapId] = key.split('#');
+
+            const detail = laporan.detailLaporan.find(d =>
+                d.sesiBongkar.idGroupTeam === teamId && d.sesiBongkar.koorlapId === koorlapId
+            );
+
+            // Use Koorlap Name for the header as requested
+            const koorlapName = (detail?.sesiBongkar as any)?.koorlap?.namaLengkap || "Default";
+
             const team = detail?.sesiBongkar.groupTeam?.team;
-            const teamName = team ? (team as any[]).map(t => t.employee.namaLengkap).join(" & ") : "Unknown Team";
+            const teamMembers = team ? (team as any[]).map(t => t.employee.namaLengkap).join(" & ") : "Unknown Team";
+
+            // Format: TeamMembers (KoorlapName)
+            const headerName = `${teamMembers} (${koorlapName})`;
+
             const colStart = 28 + (index * 10);
 
-            teamMapping.set(teamId, {
+            teamMapping.set(key, {
                 colStart,
-                name: teamName,
+                name: headerName,
                 aggregates: new Array(10).fill(0),
-                koorlapId: detail?.sesiBongkar.idKoorLap || ""
+                koorlapId: koorlapId,
+                teamId: teamId
             });
 
             for (let i = 0; i < 10; i++) {
@@ -466,9 +506,12 @@ class ExcelLaporanBongkarMuatService {
                 wageTotalAggregates[i] += count;
             });
 
-            teamMapping.forEach((map, teamId) => {
+            teamMapping.forEach((map) => {
                 const teamSessions = new Array(10).fill(0);
-                const teamDetails = details.filter(d => d.sesiBongkar.idGroupTeam === teamId);
+                const teamDetails = details.filter(d =>
+                    d.sesiBongkar.idGroupTeam === map.teamId &&
+                    d.sesiBongkar.koorlapId === map.koorlapId
+                );
 
                 teamDetails.forEach(d => {
                     const s = d.sesiBongkar;

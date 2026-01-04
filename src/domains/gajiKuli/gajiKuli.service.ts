@@ -17,7 +17,7 @@ class GajiKuliService {
         const { value, page = 1, limit = 10 } = queryParams;
 
         let employeeWhere: any = {
-            gaji: { some: {} }
+            gajiKaryawan: { some: {} }
         };
 
         if (value && value.trim() !== "") {
@@ -144,7 +144,7 @@ class GajiKuliService {
 
         if (containerSize && (containerSize.name === "LCL(merah)" || containerSize.name === "LCL(hijau)")) {
             const angkutAll = await this._gajiKuliRepository.prisma.angkut.findFirst({
-                where: { name: "ALL" }
+                where: { name: "ALLLCL" }
             });
             if (angkutAll) {
                 angkutId = angkutAll.id;

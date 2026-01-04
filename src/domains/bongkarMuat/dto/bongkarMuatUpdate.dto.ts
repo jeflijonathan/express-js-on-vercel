@@ -6,24 +6,32 @@ export interface IBongkarMuatUpdatePayload {
   seriContainer: string;
   idKoorlap: string;
   idGroupTeam: string;
-  idStatusBongkar: number;
+
   jasaWrapping: boolean;
+  platContainer: string;
   idBarang?: number;
   idContainerSize?: number;
   idAngkut?: number;
+  idTradeType?: number;
+  startAT?: string;
+  endAT?: string;
 }
 
 class UpdateBongkarMuatDTO extends BaseDTO {
   static schemaUpdateBongkarMuat = z.object({
-    ownerCode: z.string().max(4, "maximum 4 karakter for owner code."),
-    seriContainer: z.string().min(3, "seri container is required."),
-    idKoorlap: z.string().min(1, "id koor lap is required."),
-    idGroupTeam: z.string().min(1, "id group team is required."),
-    idStatusBongkar: z.number().min(1, "id status bongkar is required."),
-    jasaWrapping: z.boolean(),
+    ownerCode: z.string().max(4, "maximum 4 karakter for owner code.").optional(),
+    seriContainer: z.string().optional(),
+    idKoorlap: z.string().optional(),
+    idGroupTeam: z.string().optional(),
+
+    jasaWrapping: z.boolean().optional(),
+    platContainer: z.string().optional(),
     idBarang: z.number().optional(),
     idContainerSize: z.number().optional(),
     idAngkut: z.number().optional(),
+    idTradeType: z.number().optional(),
+    startAT: z.string().optional(),
+    endAT: z.string().optional(),
   });
 
   static async fromUpdateBongkarMuat(payload: IBongkarMuatUpdatePayload) {

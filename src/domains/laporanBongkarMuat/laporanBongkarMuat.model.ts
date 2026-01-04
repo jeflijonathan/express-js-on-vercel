@@ -4,7 +4,10 @@ export interface LaporanBongkarMuatResponseModel {
     tanggalAkhir: Date;
     createdAt: Date;
     updatedAt: Date;
+    koorlapId?: string;
     detailLaporan: DetailLaporanResponseModel[];
+    recordTarifBongkars: any[];
+    recordGajis: any[];
 }
 
 export interface DetailLaporanResponseModel {
@@ -21,10 +24,10 @@ export interface DetailLaporanResponseModel {
 
 export interface SesiBongkarResponseModel {
     noContainer: string;
-    idKoorLap: string;
+    koorlapId: string;
     idGroupTeam: string;
     idBarang?: number;
-    idStatusBongkar: number;
+
     idContainerSize: number;
     idTradeType: number;
     idAngkut: number;

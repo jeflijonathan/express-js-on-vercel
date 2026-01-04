@@ -1,7 +1,6 @@
 import { barangSeeder } from "./barangSeeder";
 import { seedRole } from "./roleSeeder";
 import containerSizeItemSeeder from "./sizeContainerSeeder";
-import SeedStatusInventory from "./StatusInventorySeeder";
 import SeedTradeType from "./TradeTypeSeed";
 import { angkutSeeder } from "./transportMethodSeeder";
 import { seedUser } from "./userSeeder";
@@ -16,7 +15,6 @@ const listSeeder = [
   { name: "transport", seeder: angkutSeeder },
   { name: "categoryitem", seeder: barangSeeder },
   { name: "tradeType", seeder: SeedTradeType },
-  { name: "statusInventory", seeder: SeedStatusInventory },
   { name: "containerSize", seeder: containerSizeItemSeeder },
   { name: "tarifBongkarMuat", seeder: tarifBongkarMuatSeeder },
 ];

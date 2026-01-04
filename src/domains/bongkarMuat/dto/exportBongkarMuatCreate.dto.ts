@@ -9,6 +9,9 @@ export interface IExportBongkarMuatPayload {
   idContainerSize: number;
   idAngkut: number;
   jasaWrapping: boolean;
+  platContainer: string;
+  startAT: string;
+  endAT?: string;
 }
 
 class CreateExportBongkarMuatDTO extends BaseDTO {
@@ -21,10 +24,13 @@ class CreateExportBongkarMuatDTO extends BaseDTO {
         message: "seri container only number",
       }),
     idKoorlap: z.string().min(1, "id koor lap is required."),
-    idGroupTeam: z.string().min(1, "id group team is required."),
+    idGroupTeam: z.string().min(1, "team is required."),
     idContainerSize: z.number().min(1, "id container size is required."),
     idAngkut: z.number().min(1, "id angkut is required."),
     jasaWrapping: z.boolean(),
+    platContainer: z.string().min(1, "Plat number is required."),
+    startAT: z.string().min(1, "Start time is required."),
+    endAT: z.string().optional(),
   });
 
   static async fromCreateExportBongkarMuat(payload: IExportBongkarMuatPayload) {

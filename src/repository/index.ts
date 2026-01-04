@@ -5,7 +5,7 @@ export { default as GroupTeamRepository } from "./groupTeam/GroupTeam.repository
 export { default as InventoryRepository } from "./bongkarMuat/bongkarMuat.repository";
 export { default as PasswordResetTokenRepository } from "./passwordResetToken/PasswordResetToken.repository";
 export { default as RoleRepository } from "./role/Role.repository";
-export { default as StatusInventoryRepository } from "./statusBongkar/statusBongkar.repository";
+
 export { default as TeamRepository } from "./team/Team.repository";
 export { default as TradeTypeRepository } from "./tradeType/TradeType.repository";
 export { default as TransportMethodRepository } from "./transportMethod/TransportMethod.repository";
