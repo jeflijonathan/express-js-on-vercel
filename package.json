@@ -36,7 +36,6 @@
     "migrate:resolve:latest": "npx prisma migrate resolve --rolled-back",
     "migrate:resolve:latest:forward": "npx prisma migrate resolve --applied",
     "migrate:resolve:latest:backward": "npx prisma migrate resolve --rolled-back",
-    "migrate:resolve:latest:forward:backward": "npx prisma migrate resolve --rolled-back",
     "backend:dev": "npm run dev --prefix",
     "frontend:dev": "npm run dev --prefix"
   },
