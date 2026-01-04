@@ -22,23 +22,23 @@ app.use((_, res: Response) => {
   });
 });
 
-// async function main() {
-//   try {
-//     await server.listen();
+async function main() {
+  try {
+    await server.listen();
 
-//     process.on("SIGINT", async () => {
-//       await prisma.$disconnect();
-//       process.exit(0);
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     process.exit(1);
-//   }
-// }
+    process.on("SIGINT", async () => {
+      await prisma.$disconnect();
+      process.exit(0);
+    });
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
+}
 
-// // Only run the server if this file is executed directly
-// if (require.main === module) {
-//   main();
-// }
+// Only run the server if this file is executed directly
+if (require.main === module) {
+  main();
+}
 
 export default app;
