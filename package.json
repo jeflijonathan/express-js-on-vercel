@@ -18,7 +18,7 @@
     "test": "jest",
     "dev": "ts-node-dev --respawn --transpile-only -r dotenv/config -r tsconfig-paths/register src/index.ts",
     "build": "tsc",
-    "start": "node -r dotenv/config -r tsconfig-paths/register dist/index.js",
+    "start": "node -r dotenv/config -r tsconfig-paths/register public/index.js",
     "check-env": "node -r dotenv/config -e \"console.log(\"DATABASE_URL=\", process.env.DATABASE_URL)\"",
     "preseed": "node -e \"const fs=require('fs'); if(!fs.existsSync('.env')) fs.copyFileSync('example.env','.env');\"",
     "seed": "npx ts-node -r tsconfig-paths/register -r dotenv/config src/seeder/index.ts",
